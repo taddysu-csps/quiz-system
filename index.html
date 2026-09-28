@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>填空題線上課業預習系統</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --secondary-color: #06b6d4;
+      --bg-color: #f8fafc;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .card-custom {
+      border: none;
+      border-radius: 1.25rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+      width: 100%;
+      max-width: 850px;
+    }
+
+    .page-badge {
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      padding: 0.5rem 1.2rem;
+      border-radius: 50rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .question-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1e293b;
+      line-height: 1.6;
+      margin: 1.5rem 0;
+    }
+
+    .answer-input {
+      font-size: 1.2rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      border: 2px solid #cbd5e1;
+      transition: all 0.2s ease;
+    }
+
+    .answer-input:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    }
+
+    .encouragement-toast {
+      border-radius: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .hidden { display: none !important; }
+
+    .live-badge {
+      font-size: 0.85rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 50rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部導航 -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-2">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-book-open-reader me-2"></i>蘇仁宗老師線上課業預習系統2026.08.30 V1.0</a>
+      <button class="btn btn-outline-light btn-sm" id="btnRoleSwitch" onclick="toggleRoleModal()">
+        <i class="fa-solid fa-user-shield me-1"></i>教師後台
+      </button>
+    </div>
+  </nav>
+
+  <div class="main-container container">
+
+    <!-- 1. 學生登入區塊 -->
+    <div id="viewStudentLogin" class="card card-custom p-4 p-md-5">
+      <div class="text-center mb-4">
+        <h3 class="fw-bold text-primary"><i class="fa-solid fa-graduation-cap me-2"></i>學生作業登入</h3>
+        <p class="text-muted">請選擇您的班級、座號與姓名開始測驗</p>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">班級</label>
+          <select id="selectClass" class="form-select form-select-lg" onchange="onClassChange()">
+            <option value="">請選擇班級</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">座號</label>
+          <select id="selectSeat" class="form-select form-select-lg" onchange="onSeatChange()" disabled>
+            <option value="">請選擇座號</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">姓名</label>
+          <input type="text" id="inputStudentName" class="form-control form-control-lg" readonly placeholder="自動帶出">
+        </div>
+      </div>
+      <button id="btnStudentLogin" class="btn btn-primary btn-lg w-100 mt-4 fw-bold" onclick="loginStudent()" disabled>
+        進入預習作業選單 <i class="fa-solid fa-arrow-right ms-2"></i>
+      </button>
+    </div>
+
+    <!-- 2. 作業選擇區塊 -->
+    <div id="viewAssignmentList" class="card card-custom p-4 hidden">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold m-0"><i class="fa-solid fa-list-check me-2"></i>可進行的預習作業</h4>
+        <button class="btn btn-sm btn-outline-secondary" onclick="showView('viewStudentLogin')">切換學生</button>
+      </div>
+      <div id="assignmentContainer" class="list-group list-group-flush"></div>
+    </div>
+
+    <!-- 3. 答題進行區塊 -->
+    <div id="viewQuiz" class="card card-custom p-4 p-md-5 hidden">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="badge bg-primary fs-6" id="quizProgressTag">題目 1 / 10</span>
+        <span class="page-badge" id="quizPageTag"><i class="fa-solid fa-book me-1"></i> 課本 P.00</span>
+      </div>
+
+      <div class="progress mb-4" style="height: 10px;">
+        <div id="quizProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: 0%"></div>
+      </div>
+
+      <div class="question-title text-center my-4" id="quizQuestionContent">
+        題目載入中...
+      </div>
+
+      <!-- 答錯提示與鼓勵語 -->
+      <div id="encouragementBox" class="alert alert-warning text-center encouragement-toast hidden my-3">
+        <i class="fa-solid fa-triangle-exclamation me-2 text-warning"></i><span id="encouragementText"></span>
+      </div>
+
+      <!-- 動態輸入框區域 -->
+      <div class="row justify-content-center g-3 mt-2">
+        <div class="col-md-10" id="boxAns1">
+          <div class="input-group input-group-lg">
+            <span class="input-group-text fw-bold text-primary" id="labelAns1">答案 1</span>
+            <input type="text" id="inputAns1" class="form-control answer-input text-center" placeholder="請輸入答案..." autocomplete="off">
+          </div>
+        </div>
+
+        <div class="col-md-10 hidden" id="boxAns2">
+          <div class="input-group input-group-lg">
+            <span class="input-group-text fw-bold text-primary">答案 2</span>
+            <input type="text" id="inputAns2" class="form-control answer-input text-center" placeholder="請輸入填空 (2) 答案..." autocomplete="off">
+          </div>
+        </div>
+
+        <div class="col-md-10 mt-3">
+          <button class="btn btn-primary btn-lg w-100 fw-bold" onclick="submitCurrentAnswer()">提交答案 <i class="fa-solid fa-paper-plane ms-1"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 測驗完成與排行榜區塊 -->
+    <div id="viewSummary" class="card card-custom p-4 p-md-5 hidden">
+      <div class="text-center mb-4">
+        <div class="display-4 text-success mb-2"><i class="fa-solid fa-circle-check"></i></div>
+        <h2 class="fw-bold">恭喜完成預習測驗！</h2>
+        <p class="text-muted">以下是您的個人錯題複習與全班即時完成排行榜</p>
+      </div>
+
+      <ul class="nav nav-pills nav-justified mb-4" id="summaryTabs">
+        <li class="nav-item">
+          <button class="nav-link active fw-bold" onclick="switchSummaryTab('tabMistakes')">個人錯題統計</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link fw-bold" onclick="switchSummaryTab('tabLeaderboard')">全班完成排行榜</button>
+        </li>
+      </ul>
+
+      <div id="tabMistakes">
+        <div id="mistakesContainer"></div>
+      </div>
+
+      <div id="tabLeaderboard" class="hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>名次</th>
+                <th>座號</th>
+                <th>姓名</th>
+                <th>狀態</th>
+                <th>完成時間</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-lg w-100 mt-4 fw-bold" onclick="showView('viewAssignmentList')">返回作業選單</button>
+    </div>
+
+    <!-- 5. 教師後端管理介面 -->
+    <div id="viewTeacherDashboard" class="card card-custom p-4 hidden">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold m-0"><i class="fa-solid fa-sliders me-2"></i>教師管理控制台</h3>
+        <button class="btn btn-outline-danger btn-sm" onclick="logoutTeacher()">登出</button>
+      </div>
+
+      <ul class="nav nav-tabs mb-4" id="teacherTabHeader">
+        <li class="nav-item"><a class="nav-link active fw-bold" data-bs-toggle="tab" href="#tabPublish">作業發布</a></li>
+        <li class="nav-item"><a class="nav-link fw-bold" data-bs-toggle="tab" href="#tabAnalytics" id="tabLinkAnalytics">答題統計分析</a></li>
+        <li class="nav-item"><a class="nav-link fw-bold" data-bs-toggle="tab" href="#tabStudents">學生名單管理</a></li>
+        <li class="nav-item"><a class="nav-link fw-bold" data-bs-toggle="tab" href="#tabAccount">帳號設定</a></li>
+      </ul>
+
+      <div class="tab-content">
+        <!-- 作業發布 -->
+        <div class="tab-pane fade show active" id="tabPublish">
+          <form id="formPublish" onsubmit="handlePublish(event)">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">選擇題庫工作表</label>
+                <select id="selectBank" class="form-select" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">指定班級</label>
+                <select id="selectTargetClass" class="form-select" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">開始時間</label>
+                <input type="datetime-local" id="inputStartTime" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">結束時間</label>
+                <input type="datetime-local" id="inputEndTime" class="form-control" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-success mt-3 fw-bold"><i class="fa-solid fa-plus me-1"></i>建立並發布作業</button>
+          </form>
+
+          <h5 class="fw-bold mt-5 mb-3">已發布作業歷史紀錄</h5>
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr><th>作業編號</th><th>題庫名稱</th><th>班級</th><th>時間區間</th><th>操作</th></tr>
+              </thead>
+              <tbody id="publishedHwTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 統計分析（支援即時自動更新與學生題題細節檢視） -->
+        <div class="tab-pane fade" id="tabAnalytics">
+          <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-2">
+            <div class="col-md-7">
+              <label class="form-label fw-bold">選擇要檢視的作業</label>
+              <select id="selectAnalyticsHw" class="form-select" onchange="startAnalyticsAutoRefresh()"></select>
+            </div>
+            <div>
+              <span class="badge bg-success-subtle text-success border border-success live-badge" id="autoSyncBadge">
+                <i class="fa-solid fa-arrows-rotate fa-spin me-1"></i> 即時自動同步中 (<span id="lastUpdatedTime">--:--:--</span>)
+              </span>
+            </div>
+          </div>
+
+          <h5 class="fw-bold text-primary"><i class="fa-solid fa-chart-bar me-2"></i>各題答錯人數與累計錯題次數</h5>
+          <div class="table-responsive mb-4">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr><th>題號</th><th>題目內容</th><th>課本頁碼</th><th>答錯人數</th><th>累計錯題總次數</th></tr>
+              </thead>
+              <tbody id="questionStatsTbody"></tbody>
+            </table>
+          </div>
+
+          <h5 class="fw-bold text-success"><i class="fa-solid fa-users me-2"></i>學生完成進度與答題細節</h5>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr><th>座號</th><th>姓名</th><th>進度</th><th>狀態</th><th>完成時間</th><th>操作</th></tr>
+              </thead>
+              <tbody id="studentProgressTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 學生名單管理 -->
+        <div class="tab-pane fade" id="tabStudents">
+          <form class="row g-2 mb-4" onsubmit="handleAddStudent(event)">
+            <div class="col-md-3"><input type="text" id="addStudentClass" class="form-control" placeholder="班級 (如 101)" required></div>
+            <div class="col-md-3"><input type="number" id="addStudentSeat" class="form-control" placeholder="座號" required></div>
+            <div class="col-md-4"><input type="text" id="addStudentName" class="form-control" placeholder="學生姓名" required></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-plus"></i> 新增</button></div>
+          </form>
+
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-sm table-hover align-middle">
+              <thead class="table-light">
+                <tr><th>班級</th><th>座號</th><th>姓名</th><th>操作</th></tr>
+              </thead>
+              <tbody id="studentListTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 帳號密碼修改 -->
+        <div class="tab-pane fade" id="tabAccount">
+          <form class="col-md-6" onsubmit="handleAccountUpdate(event)">
+            <div class="mb-3">
+              <label class="form-label fw-bold">新教師帳號</label>
+              <input type="text" id="newUsername" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">新教師密碼</label>
+              <input type="password" id="newPassword" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-warning fw-bold">儲存修改</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 教師登入 Modal -->
+  <div class="modal fade" id="teacherLoginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-header-title fw-bold"><i class="fa-solid fa-lock me-2"></i>教師後台身分驗證</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">帳號</label>
+            <input type="text" id="teacherUser" class="form-control" placeholder="請輸入教師帳號">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">密碼</label>
+            <input type="password" id="teacherPass" class="form-control" placeholder="請輸入密碼">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary w-100 fw-bold" onclick="loginTeacher()">登入後台</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改已發布作業 Modal -->
+  <div class="modal fade" id="editAssignmentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>修改已發布作業</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editAssignmentId">
+          <div class="mb-3">
+            <label class="form-label fw-bold">選擇題庫工作表</label>
+            <select id="editSelectBank" class="form-select" required></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">指定班級</label>
+            <select id="editSelectTargetClass" class="form-select" required></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">開始時間</label>
+            <input type="datetime-local" id="editInputStartTime" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">結束時間</label>
+            <input type="datetime-local" id="editInputEndTime" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-warning fw-bold" onclick="submitEditAssignment()">儲存修改</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 復原進度詢問 Modal -->
+  <div class="modal fade" id="resumeProgressModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-clock-rotate-left me-2"></i>檢測到歷史答題紀錄</h5>
+        </div>
+        <div class="modal-body fs-5 text-center py-4">
+          檢測到您上次未完成的進度，請問要<b>「繼續上次進度」</b>還是<b>「重新開始」</b>？
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-outline-secondary btn-lg px-4" onclick="confirmResume(false)">重新開始</button>
+          <button type="button" class="btn btn-primary btn-lg px-4 fw-bold" onclick="confirmResume(true)">繼續上次進度</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 學生個人答題明細 Modal -->
+  <div class="modal fade" id="studentDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold" id="studentDetailModalTitle"><i class="fa-solid fa-user-check me-2"></i>學生個人答題明細</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>題號</th>
+                  <th>題目內容</th>
+                  <th>課本頁碼</th>
+                  <th>當前狀態</th>
+                  <th>累積答錯次數</th>
+                </tr>
+              </thead>
+              <tbody id="studentDetailTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+   // 替換 google.script.run 為 Fetch API 呼叫
+const google = {
+  script: {
+    run: {
+      withSuccessHandler(successCb) {
+        return {
+          withFailureHandler(failCb) {
+            return new Proxy({}, {
+              get(target, actionName) {
+                return async (...args) => {
+                  try {
+                    const res = await fetch('/api/app', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: actionName, args })
+                    });
+                    const result = await res.json();
+                    if (res.ok && result.success !== false) {
+                      if (successCb) successCb(result.data !== undefined ? result.data : result);
+                    } else {
+                      if (failCb) failCb(new Error(result.message || 'API 請求失敗'));
+                      else alert(result.message || '系統發生錯誤');
+                    }
+                  } catch (err) {
+                    if (failCb) failCb(err);
+                    else alert('網路請求失敗: ' + err.message);
+                  }
+                };
+              }
+            });
+          },
+          ...new Proxy({}, {
+            get(target, actionName) {
+              return async (...args) => {
+                try {
+                  const res = await fetch('/api/app', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: actionName, args })
+                  });
+                  const result = await res.json();
+                  if (res.ok && result.success !== false) {
+                    if (successCb) successCb(result.data !== undefined ? result.data : result);
+                  } else {
+                    alert(result.message || '系統發生錯誤');
+                  }
+                } catch (err) {
+                  alert('網路請求失敗: ' + err.message);
+                }
+              };
+            }
+          })
+        };
+      }
+    }
+  }
+};
+    
+    
+    const ENCOURAGEMENTS = [
+      "沒關係，再仔細思考一下，你一定可以的！",
+      "失敗是成功的基石，加油，再試一次！",
+      "別灰心，錯過一次代表離正確答案更近囉！",
+      "相信自己，再讀一遍題目與課本重點～",
+      "學習就是不斷修正的過程，你做得很好，繼續加油！",
+      "差一點點而已，再想想看！",
+      "翻翻課本頁碼提示，答案就在裡面！",
+      "沉住氣，大腦正在因為挑戰而變得更聰明！",
+      "每一條錯題都是通往高分的階梯，再試一次！",
+      "調整一下方向，你馬上就能解答出來了！"
+    ];
+
+    let allStudentsData = [];
+    let currentStudent = { className: '', seatNo: '', name: '' };
+    let currentAssignment = null;
+    let quizState = { recordId: '', questions: [], currentIndex: 0 };
+
+    let latestAnalyticsData = null;
+    let analyticsTimer = null;
+    let isAnalyticsFetching = false;
+
+    let cachedQuestionBanks = [];
+    let cachedClasses = [];
+
+    window.onload = function() {
+      loadStudentInitData();
+
+      // 增強型頁籤切換事件綁定
+      const analyticsTabBtn = document.getElementById('tabLinkAnalytics');
+      if (analyticsTabBtn) {
+        analyticsTabBtn.addEventListener('click', function () {
+          setTimeout(() => { startAnalyticsAutoRefresh(); }, 150);
+        });
+      }
+
+      const allTabs = document.querySelectorAll('#teacherTabHeader a[data-bs-toggle="tab"]');
+      allTabs.forEach(t => {
+        if (t.id !== 'tabLinkAnalytics') {
+          t.addEventListener('click', function () {
+            stopAnalyticsAutoRefresh();
+          });
+        }
+      });
+
+      document.getElementById('inputAns1').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          const box2 = document.getElementById('boxAns2');
+          if (!box2.classList.contains('hidden')) {
+            document.getElementById('inputAns2').focus();
+          } else {
+            submitCurrentAnswer();
+          }
+        }
+      });
+
+      document.getElementById('inputAns2').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') submitCurrentAnswer();
+      });
+    };
+
+    function showView(viewId) {
+      ['viewStudentLogin', 'viewAssignmentList', 'viewQuiz', 'viewSummary', 'viewTeacherDashboard'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(viewId).classList.remove('hidden');
+
+      if (viewId !== 'viewTeacherDashboard') {
+        stopAnalyticsAutoRefresh();
+      }
+    }
+
+    function logoutTeacher() {
+      stopAnalyticsAutoRefresh();
+      showView('viewStudentLogin');
+    }
+
+    // ------------------------------------------------------------------------
+    // 自動即時更新與數據處理
+    // ------------------------------------------------------------------------
+    function startAnalyticsAutoRefresh() {
+      stopAnalyticsAutoRefresh();
+      loadAnalytics(false);
+
+      analyticsTimer = setInterval(() => {
+        loadAnalytics(true);
+      }, 5000);
+    }
+
+    function stopAnalyticsAutoRefresh() {
+      if (analyticsTimer) {
+        clearInterval(analyticsTimer);
+        analyticsTimer = null;
+      }
+    }
+
+    function loadAnalytics(isSilent = false) {
+      const selectEl = document.getElementById('selectAnalyticsHw');
+      const hwId = selectEl ? selectEl.value : '';
+
+      if (!hwId) {
+        document.getElementById('questionStatsTbody').innerHTML = '<tr><td colspan="5" class="text-center text-muted">目前尚無已發布作業或未選擇作業</td></tr>';
+        document.getElementById('studentProgressTbody').innerHTML = '<tr><td colspan="6" class="text-center text-muted">目前尚無已發布作業或未選擇作業</td></tr>';
+        return;
+      }
+
+      if (isSilent && isAnalyticsFetching) return;
+      isAnalyticsFetching = true;
+
+      google.script.run
+        .withSuccessHandler(data => {
+          isAnalyticsFetching = false;
+          latestAnalyticsData = data;
+
+          // 1. 各題答錯人數與累計錯題次數
+          const qTbody = document.getElementById('questionStatsTbody');
+          if (!data.questionStats || data.questionStats.length === 0) {
+            qTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">尚無題目統計數據</td></tr>';
+          } else {
+            qTbody.innerHTML = data.questionStats.map(q => `
+              <tr>
+                <td>${q.id}</td>
+                <td>${q.content}</td>
+                <td>${q.page}</td>
+                <td><span class="badge bg-warning text-dark">${q.wrongStudentCount} 人</span></td>
+                <td><span class="badge bg-danger">${q.errorCount} 次</span></td>
+              </tr>
+            `).join('');
+          }
+
+          // 2. 學生進度總覽與操作按鈕
+          const pTbody = document.getElementById('studentProgressTbody');
+          if (!data.studentProgress || data.studentProgress.length === 0) {
+            pTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">尚無學生答題紀錄</td></tr>';
+          } else {
+            pTbody.innerHTML = data.studentProgress.map(p => `
+              <tr>
+                <td>${p.seatNo}</td>
+                <td>${p.name}</td>
+                <td>${p.currentIndex} / ${p.totalQuestions} 題</td>
+                <td>${p.isCompleted ? '<span class="badge bg-success">已完成</span>' : '<span class="badge bg-secondary">進行中</span>'}</td>
+                <td>${p.finishTime}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary fw-bold" onclick="showStudentDetailModal('${p.recordId}')">
+                    <i class="fa-solid fa-eye me-1"></i>答題明細
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          }
+
+          // 3. 更新時間標籤
+          const now = new Date();
+          const timeString = now.toTimeString().split(' ')[0];
+          document.getElementById('lastUpdatedTime').innerText = timeString;
+        })
+        .withFailureHandler(err => {
+          isAnalyticsFetching = false;
+          console.error("載入統計分析失敗：", err);
+          if (!isSilent) {
+            document.getElementById('questionStatsTbody').innerHTML = `<tr><td colspan="5" class="text-center text-danger">載入失敗：${err.message}</td></tr>`;
+          }
+        })
+        .getAssignmentAnalytics(hwId);
+    }
+
+    // 檢視學生個人每一題答題細節彈出視窗
+    function showStudentDetailModal(recordId) {
+      if (!latestAnalyticsData) return;
+      const student = latestAnalyticsData.studentProgress.find(p => p.recordId === recordId);
+      if (!student) return;
+
+      document.getElementById('studentDetailModalTitle').innerHTML = 
+        `<i class="fa-solid fa-user-check me-2"></i> ${student.className} 班 ${student.seatNo} 號 ${student.name} - 個人各題答題情形`;
+
+      const tbody = document.getElementById('studentDetailTbody');
+      tbody.innerHTML = latestAnalyticsData.questionsList.map((q, idx) => {
+        let statusBadge = '';
+        const wrongCount = (student.wrongStats && student.wrongStats[idx]) ? student.wrongStats[idx] : 0;
+
+        if (idx < student.currentIndex || student.isCompleted) {
+          statusBadge = '<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>已答對</span>';
+        } else if (idx === student.currentIndex) {
+          statusBadge = '<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i>作答中</span>';
+        } else {
+          statusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-lock me-1"></i>未到達</span>';
+        }
+
+        const wrongBadge = wrongCount > 0 
+          ? `<span class="badge bg-danger">${wrongCount} 次</span>` 
+          : `<span class="badge bg-light text-dark border">0 次</span>`;
+
+        return `
+          <tr>
+            <td><b>第 ${idx + 1} 題</b></td>
+            <td>${q.content}</td>
+            <td>${q.page}</td>
+            <td>${statusBadge}</td>
+            <td>${wrongBadge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const modal = new bootstrap.Modal(document.getElementById('studentDetailModal'));
+      modal.show();
+    }
+
+    // ------------------------------------------------------------------------
+    // 學生端前端邏輯
+    // ------------------------------------------------------------------------
+    function loadStudentInitData() {
+      google.script.run.withSuccessHandler(data => {
+        allStudentsData = data.students;
+        const selectClass = document.getElementById('selectClass');
+        selectClass.innerHTML = '<option value="">請選擇班級</option>';
+        data.classes.forEach(c => {
+          selectClass.innerHTML += `<option value="${c}">${c} 班</option>`;
+        });
+      }).getStudentInitData();
+    }
+
+    function onClassChange() {
+      const className = document.getElementById('selectClass').value;
+      const selectSeat = document.getElementById('selectSeat');
+      selectSeat.innerHTML = '<option value="">請選擇座號</option>';
+      document.getElementById('inputStudentName').value = '';
+      document.getElementById('btnStudentLogin').disabled = true;
+
+      if (!className) {
+        selectSeat.disabled = true;
+        return;
+      }
+
+      const seats = allStudentsData.filter(s => s.className === className);
+      seats.sort((a, b) => a.seatNo - b.seatNo).forEach(s => {
+        selectSeat.innerHTML += `<option value="${s.seatNo}">${s.seatNo} 號</option>`;
+      });
+      selectSeat.disabled = false;
+    }
+
+    function onSeatChange() {
+      const className = document.getElementById('selectClass').value;
+      const seatNo = Number(document.getElementById('selectSeat').value);
+      const student = allStudentsData.find(s => s.className === className && s.seatNo === seatNo);
+
+      if (student) {
+        document.getElementById('inputStudentName').value = student.name;
+        currentStudent = { className: student.className, seatNo: student.seatNo, name: student.name };
+        document.getElementById('btnStudentLogin').disabled = false;
+      } else {
+        document.getElementById('inputStudentName').value = '';
+        document.getElementById('btnStudentLogin').disabled = true;
+      }
+    }
+
+    function loginStudent() {
+      google.script.run.withSuccessHandler(assignments => {
+        const container = document.getElementById('assignmentContainer');
+        container.innerHTML = '';
+
+        if (assignments.length === 0) {
+          container.innerHTML = '<div class="alert alert-info text-center">目前沒有開放中的預習作業。</div>';
+        } else {
+          assignments.forEach(hw => {
+            container.innerHTML += `
+              <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                <div>
+                  <h5 class="fw-bold mb-1">${hw.bankName}</h5>
+                  <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>截止時間：${hw.endTime}</small>
+                </div>
+                <button class="btn btn-outline-primary fw-bold" onclick="selectAssignment('${hw.assignmentId}')">開始測驗</button>
+              </div>
+            `;
+          });
+        }
+        showView('viewAssignmentList');
+      }).getAvailableAssignments(currentStudent.className);
+    }
+
+    function selectAssignment(assignmentId) {
+      currentAssignment = assignmentId;
+      google.script.run.withSuccessHandler(res => {
+        if (res.hasProgress && !res.isCompleted) {
+          const modal = new bootstrap.Modal(document.getElementById('resumeProgressModal'));
+          modal.show();
+        } else {
+          startQuiz(false);
+        }
+      }).checkStudentProgress(assignmentId, currentStudent.className, currentStudent.seatNo);
+    }
+
+    function confirmResume(isResume) {
+      const modalEl = document.getElementById('resumeProgressModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+      startQuiz(!isResume);
+    }
+
+    function startQuiz(resetProgress) {
+      google.script.run.withSuccessHandler(data => {
+        quizState = {
+          recordId: data.recordId,
+          questions: data.questions,
+          currentIndex: data.currentIndex
+        };
+        renderCurrentQuestion();
+        showView('viewQuiz');
+      }).loadAssignment(currentAssignment, currentStudent.className, currentStudent.seatNo, currentStudent.name, resetProgress);
+    }
+
+    function renderCurrentQuestion() {
+      const q = quizState.questions[quizState.currentIndex];
+      if (!q) {
+        finishQuiz();
+        return;
+      }
+
+      document.getElementById('quizProgressTag').innerText = `題目 ${quizState.currentIndex + 1} / ${quizState.questions.length}`;
+      document.getElementById('quizPageTag').innerHTML = `<i class="fa-solid fa-book me-1"></i> 課本 ${q.page}`;
+      
+      const percent = ((quizState.currentIndex) / quizState.questions.length) * 100;
+      document.getElementById('quizProgressBar').style.width = percent + '%';
+
+      document.getElementById('quizQuestionContent').innerText = q.content;
+      
+      document.getElementById('inputAns1').value = '';
+      document.getElementById('inputAns2').value = '';
+      document.getElementById('encouragementBox').classList.add('hidden');
+
+      const boxAns2 = document.getElementById('boxAns2');
+      const labelAns1 = document.getElementById('labelAns1');
+      const inputAns1 = document.getElementById('inputAns1');
+
+      if (q.answer2 && q.answer2.trim() !== '') {
+        boxAns2.classList.remove('hidden');
+        labelAns1.innerText = '答案 1';
+        inputAns1.placeholder = '請輸入填空 (1) 答案...';
+      } else {
+        boxAns2.classList.add('hidden');
+        labelAns1.innerText = '答案';
+        inputAns1.placeholder = '請在此輸入答案...';
+      }
+
+      inputAns1.focus();
+    }
+
+    function submitCurrentAnswer() {
+      const ans1 = document.getElementById('inputAns1').value.trim();
+      const ans2 = document.getElementById('inputAns2').value.trim();
+      if (!ans1) return;
+
+      const studentAnswers = { ans1, ans2 };
+
+      google.script.run.withSuccessHandler(res => {
+        if (res.isCorrect) {
+          quizState.currentIndex = res.nextIndex;
+          if (res.isCompleted) {
+            finishQuiz();
+          } else {
+            renderCurrentQuestion();
+          }
+        } else {
+          const randomText = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
+          const message = `${res.wrongDetailText}囉！ ${randomText}`;
+          
+          document.getElementById('encouragementText').innerText = message;
+          document.getElementById('encouragementBox').classList.remove('hidden');
+          document.getElementById('inputAns1').select();
+        }
+      }).submitAnswer(quizState.recordId, quizState.currentIndex, studentAnswers);
+    }
+
+    function finishQuiz() {
+      google.script.run.withSuccessHandler(data => {
+        const mContainer = document.getElementById('mistakesContainer');
+        if (data.wrongDetails.length === 0) {
+          mContainer.innerHTML = '<div class="alert alert-success text-center fs-5"><i class="fa-solid fa-star me-2"></i>太厲害了！您本次測驗全部一次答對！</div>';
+        } else {
+          let html = '<div class="list-group">';
+          data.wrongDetails.forEach(m => {
+            html += `
+              <div class="list-group-item p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="fw-bold mb-1">${m.content}</h6>
+                  <span class="badge bg-danger">答錯 ${m.count} 次</span>
+                </div>
+                <p class="mb-1 text-primary">標準答案：<b>${m.answer}</b></p>
+                <small class="text-muted"><i class="fa-solid fa-book me-1"></i>課本頁碼：${m.page}</small>
+              </div>
+            `;
+          });
+          html += '</div>';
+          mContainer.innerHTML = html;
+        }
+
+        const tbody = document.getElementById('leaderboardTbody');
+        tbody.innerHTML = '';
+        data.leaderboard.forEach((item, idx) => {
+          const rank = item.isCompleted ? (idx + 1) : '-';
+          const badge = item.isCompleted ? '<span class="badge bg-success">已完成</span>' : '<span class="badge bg-secondary">進行中</span>';
+          tbody.innerHTML += `
+            <tr>
+              <td><b>${rank}</b></td>
+              <td>${item.seatNo}</td>
+              <td>${item.name}</td>
+              <td>${badge}</td>
+              <td>${item.finishTime}</td>
+            </tr>
+          `;
+        });
+
+        showView('viewSummary');
+      }).getStudentSummary(quizState.recordId, currentAssignment, currentStudent.className);
+    }
+
+    function switchSummaryTab(tabId) {
+      document.getElementById('tabMistakes').classList.add('hidden');
+      document.getElementById('tabLeaderboard').classList.add('hidden');
+      document.getElementById(tabId).classList.remove('hidden');
+
+      const tabs = document.querySelectorAll('#summaryTabs .nav-link');
+      tabs.forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    // ------------------------------------------------------------------------
+    // 教師端前端邏輯
+    // ------------------------------------------------------------------------
+    function toggleRoleModal() {
+      const modal = new bootstrap.Modal(document.getElementById('teacherLoginModal'));
+      modal.show();
+    }
+
+    function loginTeacher() {
+      const user = document.getElementById('teacherUser').value;
+      const pass = document.getElementById('teacherPass').value;
+
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          const modalEl = document.getElementById('teacherLoginModal');
+          bootstrap.Modal.getInstance(modalEl).hide();
+          loadTeacherDashboard();
+          showView('viewTeacherDashboard');
+        } else {
+          alert(res.message);
+        }
+      }).teacherLogin(user, pass);
+    }
+
+    function loadTeacherDashboard() {
+      google.script.run
+        .withSuccessHandler(data => {
+          cachedQuestionBanks = data.questionBanks;
+          cachedClasses = data.classes;
+
+          const selectBank = document.getElementById('selectBank');
+          selectBank.innerHTML = data.questionBanks.map(b => `<option value="${b}">${b}</option>`).join('');
+
+          const selectTargetClass = document.getElementById('selectTargetClass');
+          selectTargetClass.innerHTML = '<option value="全體">全體班級</option>' + 
+            data.classes.map(c => `<option value="${c}">${c} 班</option>`).join('');
+
+          const publishedTbody = document.getElementById('publishedHwTbody');
+          publishedTbody.innerHTML = data.assignments.map(a => `
+            <tr>
+              <td>${a.id}</td>
+              <td>${a.bankName}</td>
+              <td>${a.targetClass}</td>
+              <td>${a.startTime} ~ ${a.endTime}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-warning me-1 fw-bold" onclick="openEditAssignmentModal('${a.id}', '${a.bankName}', '${a.targetClass}', '${a.startTime}', '${a.endTime}')">
+                  <i class="fa-solid fa-pen-to-square"></i> 修改
+                </button>
+                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="handleDeleteAssignment('${a.id}')">
+                  <i class="fa-solid fa-trash"></i> 刪除
+                </button>
+              </td>
+            </tr>
+          `).join('');
+
+          const selectAnalyticsHw = document.getElementById('selectAnalyticsHw');
+          if (data.assignments.length > 0) {
+            selectAnalyticsHw.innerHTML = data.assignments.map(a => `<option value="${a.id}">${a.bankName} (${a.targetClass})</option>`).join('');
+            // 下拉選單載入完畢後，立即主動觸發一次統計分析載入
+            loadAnalytics(false);
+          } else {
+            selectAnalyticsHw.innerHTML = '<option value="">(目前無已發布作業)</option>';
+            document.getElementById('questionStatsTbody').innerHTML = '<tr><td colspan="5" class="text-center text-muted">無作業數據</td></tr>';
+            document.getElementById('studentProgressTbody').innerHTML = '<tr><td colspan="6" class="text-center text-muted">無作業數據</td></tr>';
+          }
+
+          renderStudentList(data.students);
+        })
+        .withFailureHandler(err => {
+          alert("載入教師控制台失敗：" + err.message);
+        })
+        .getTeacherDashboardData();
+    }
+
+    function handlePublish(e) {
+      e.preventDefault();
+      const bank = document.getElementById('selectBank').value;
+      const targetClass = document.getElementById('selectTargetClass').value;
+      const start = document.getElementById('inputStartTime').value.replace('T', ' ');
+      const end = document.getElementById('inputEndTime').value.replace('T', ' ');
+
+      google.script.run.withSuccessHandler(() => {
+        alert('作業發布成功！');
+        loadTeacherDashboard();
+      }).publishAssignment(bank, targetClass, start, end);
+    }
+
+    function openEditAssignmentModal(id, bankName, targetClass, startTime, endTime) {
+      document.getElementById('editAssignmentId').value = id;
+
+      const editSelectBank = document.getElementById('editSelectBank');
+      editSelectBank.innerHTML = cachedQuestionBanks.map(b => `<option value="${b}">${b}</option>`).join('');
+      editSelectBank.value = bankName;
+
+      const editSelectTargetClass = document.getElementById('editSelectTargetClass');
+      editSelectTargetClass.innerHTML = '<option value="全體">全體班級</option>' + 
+        cachedClasses.map(c => `<option value="${c}">${c} 班</option>`).join('');
+      editSelectTargetClass.value = targetClass;
+
+      document.getElementById('editInputStartTime').value = startTime.replace(' ', 'T');
+      document.getElementById('editInputEndTime').value = endTime.replace(' ', 'T');
+
+      const modal = new bootstrap.Modal(document.getElementById('editAssignmentModal'));
+      modal.show();
+    }
+
+    function submitEditAssignment() {
+      const id = document.getElementById('editAssignmentId').value;
+      const bankName = document.getElementById('editSelectBank').value;
+      const targetClass = document.getElementById('editSelectTargetClass').value;
+      const startTime = document.getElementById('editInputStartTime').value.replace('T', ' ');
+      const endTime = document.getElementById('editInputEndTime').value.replace('T', ' ');
+
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          alert('作業修改成功！');
+          const modalEl = document.getElementById('editAssignmentModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          loadTeacherDashboard();
+        } else {
+          alert(res.message);
+        }
+      }).updateAssignment(id, bankName, targetClass, startTime, endTime);
+    }
+
+    function handleDeleteAssignment(id) {
+      if (confirm('確定要刪除此筆已發布作業紀錄嗎？')) {
+        google.script.run.withSuccessHandler(res => {
+          if (res.success) {
+            alert('作業紀錄已刪除！');
+            loadTeacherDashboard();
+          } else {
+            alert(res.message);
+          }
+        }).deleteAssignment(id);
+      }
+    }
+
+    function renderStudentList(students) {
+      const tbody = document.getElementById('studentListTbody');
+      tbody.innerHTML = students.map(s => `
+        <tr>
+          <td>${s.className}</td>
+          <td>${s.seatNo}</td>
+          <td>${s.name}</td>
+          <td><button class="btn btn-sm btn-outline-danger" onclick="deleteStudent(${s.rowIndex})">刪除</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function handleAddStudent(e) {
+      e.preventDefault();
+      const c = document.getElementById('addStudentClass').value;
+      const s = document.getElementById('addStudentSeat').value;
+      const n = document.getElementById('addStudentName').value;
+
+      google.script.run.withSuccessHandler(() => {
+        loadTeacherDashboard();
+        document.getElementById('addStudentClass').value = '';
+        document.getElementById('addStudentSeat').value = '';
+        document.getElementById('addStudentName').value = '';
+      }).addStudent(c, s, n);
+    }
+
+    function deleteStudent(rowIndex) {
+      if (confirm('確定要刪除該位學生嗎？')) {
+        google.script.run.withSuccessHandler(() => {
+          loadTeacherDashboard();
+        }).deleteStudent(rowIndex);
+      }
+    }
+
+    function handleAccountUpdate(e) {
+      e.preventDefault();
+      const u = document.getElementById('newUsername').value;
+      const p = document.getElementById('newPassword').value;
+
+      google.script.run.withSuccessHandler(() => {
+        alert('教師帳號密碼修改成功！');
+      }).updateTeacherAccount(u, p);
+    }
+  </script>
+</body>
+</html>
